@@ -12,11 +12,12 @@ from qasync import QEventLoop, asyncSlot
 import nltk
 nltk.download('punkt', quiet=True)
 from nltk.tokenize import sent_tokenize
+from text_matcher import TextMatcher
 
 client = OpenAI()
 
 SYSTEM_MESSAGES = {
-    "Writing Assistant": "Review the text for clarity and readability. Simplify overly complex sentences. Maintain a formal tone, while also ensuring that the style is engaging and not overly dry or dull. Preserve the author's unique voice while improving the overall flow and style. Favor straightforward language and active voice. Make absolutely sure to not lose any details. Do not shorten when a longer sentence is more stylistically pleasing.",
+    "Writing Assistant": "Review the text for clarity and readability. Simplify overly complex sentences. Maintain a formal tone, while also ensuring that the style is engaging and not overly dry or dull. Preserve the author's unique voice while improving the overall flow and style. Favor straightforward language and active voice. Make absolutely sure to not lose any details. Do not shorten when a longer sentence is more stylistically pleasing. Be judicious and do not feel compelling to make unnecessary changes.",
     "General Assistant": "You are a helpful assistant."
 }
 
@@ -44,22 +45,6 @@ class HighlightableTextEdit(QTextEdit):
         cursor.select(QTextCursor.SelectionType.Document)
         cursor.mergeBlockFormat(block_format)
         self.setTextCursor(cursor)
-        
-        cursor = self.textCursor()
-        cursor.select(QTextCursor.SelectionType.Document)
-        cursor.mergeBlockFormat(block_format)
-        self.setTextCursor(cursor)
-        
-        cursor = self.textCursor()
-        cursor.select(QTextCursor.SelectionType.Document)
-        cursor.mergeBlockFormat(block_format)
-        self.setTextCursor(cursor)
-        
-        cursor = self.textCursor()
-        cursor.select(QTextCursor.SelectionType.Document)
-        cursor.mergeBlockFormat(block_format)
-        self.setTextCursor(cursor)
-
 
     def mouseMoveEvent(self, e):
         cursor = self.cursorForPosition(e.pos())
@@ -73,10 +58,11 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Improved Writing Assistant')
-        self.setGeometry(100, 100, 1500, 900)  # Increased width to accommodate three columns
+        self.setGeometry(100, 100, 1500, 900)
         self.font = "Arial"
         self.font_size = 15
         self.line_spacing = 125  # 150% line spacing
+        self.text_matcher = TextMatcher()
         self.setup_ui()
 
     def setup_ui(self):
@@ -248,11 +234,11 @@ class MainWindow(QWidget):
         self.progress_bar.hide()
 
     def display_texts(self, original, revised):
+        original_sentences, revised_sentences, matches, split_sentences = self.text_matcher.match_texts(original, revised)
+        changes = self.text_matcher.analyze_changes(original_sentences, revised_sentences, matches, split_sentences)
+
         self.original_view.clear()
         self.revised_view.clear()
-        
-        original_sentences = sent_tokenize(original)
-        revised_sentences = sent_tokenize(revised)
         
         self.original_view.sentences = []
         self.revised_view.sentences = []
@@ -260,33 +246,56 @@ class MainWindow(QWidget):
         cursor_original = self.original_view.textCursor()
         cursor_revised = self.revised_view.textCursor()
         
-        for sentence in original_sentences:
+        for i, sentence in enumerate(original_sentences):
             start_original = cursor_original.position()
             cursor_original.insertText(sentence + " ")
             end_original = cursor_original.position()
             self.original_view.sentences.append((start_original, end_original))
         
-        for sentence in revised_sentences:
+        for j, sentence in enumerate(revised_sentences):
             start_revised = cursor_revised.position()
             cursor_revised.insertText(sentence + " ")
             end_revised = cursor_revised.position()
             self.revised_view.sentences.append((start_revised, end_revised))
 
-    def highlight_sentences(self, index):
-        self.highlight_text(self.original_view, index)
-        self.highlight_text(self.revised_view, index)
+        # Clear existing highlights
+        self.original_view.setExtraSelections([])
+        self.revised_view.setExtraSelections([])
 
-    def highlight_text(self, text_edit, index):
-        text_edit.setExtraSelections([])
+        # Highlight changes
+        for change_type, orig_index, rev_index in changes:
+            if change_type == "modified":
+                self.highlight_text(self.original_view, orig_index, QColor(255, 255, 0, 100))  # Yellow
+                self.highlight_text(self.revised_view, rev_index, QColor(255, 255, 0, 100))  # Yellow
+            elif change_type == "deleted":
+                self.highlight_text(self.original_view, orig_index, QColor(255, 200, 200, 100))  # Light red
+            elif change_type == "added":
+                self.highlight_text(self.revised_view, rev_index, QColor(200, 255, 200, 100))  # Light green
+            elif change_type == "split":
+                self.highlight_text(self.original_view, orig_index, QColor(173, 216, 230, 100))  # Light blue
+                self.highlight_text(self.revised_view, rev_index, QColor(173, 216, 230, 100))  # Light blue
+
+
+    def highlight_text(self, text_edit, index, color):
         if 0 <= index < len(text_edit.sentences):
             start, end = text_edit.sentences[index]
             selection = QTextEdit.ExtraSelection()
-            selection.format.setBackground(QColor(255, 255, 0, 100))  # Light yellow
+            selection.format.setBackground(color)
             cursor = text_edit.textCursor()
             cursor.setPosition(start)
             cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
             selection.cursor = cursor
-            text_edit.setExtraSelections([selection])
+            text_edit.setExtraSelections(text_edit.extraSelections() + [selection])
+
+    def highlight_sentences(self, index):
+        self.original_view.setExtraSelections([])
+        self.revised_view.setExtraSelections([])
+        
+        if 0 <= index < len(self.original_view.sentences):
+            self.highlight_text(self.original_view, index, QColor(173, 216, 230, 100))  # Light blue
+        
+        if 0 <= index < len(self.revised_view.sentences):
+            self.highlight_text(self.revised_view, index, QColor(173, 216, 230, 100))  # Light blue
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
