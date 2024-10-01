@@ -1,2 +1,7 @@
 .venv/*
+.venv
 .env
+.macstudiovenv/*
+.macstudiovenv
+*.pyc
+*.pyo
