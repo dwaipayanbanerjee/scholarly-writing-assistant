@@ -9,8 +9,26 @@ class TextMatcher:
         self.sentence_model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
 
     def preprocess_text(self, text):
-        sentences = re.findall(r"[^.!?]+[.!?]*", text)
-        return [s.strip() for s in sentences if s.strip()]
+        # Normalize newline characters
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Split paragraphs using two or more newlines
+        paragraphs = re.split(r"\n{2,}", text)
+        processed_paragraphs = []
+        for paragraph in paragraphs:
+            sentences = re.findall(r"[^.!?]+[.!?]*", paragraph)
+            cleaned_sentences = [s.strip() for s in sentences if s.strip()]
+            if cleaned_sentences:
+                processed_paragraphs.append(cleaned_sentences)
+
+        # Debug: Print the number of paragraphs and their content
+        print(f"Preprocessed into {len(processed_paragraphs)} paragraphs.")
+        for i, para in enumerate(processed_paragraphs, 1):
+            print(f"Paragraph {i}: {len(para)} sentences.")
+            for j, sentence in enumerate(para, 1):
+                print(f"  Sentence {j}: {sentence}")
+
+        return processed_paragraphs
 
     def compute_similarity_matrix(self, original_sentences, revised_sentences):
         original_embeddings = self.sentence_model.encode(original_sentences)
@@ -18,8 +36,11 @@ class TextMatcher:
         return cosine_similarity(original_embeddings, revised_embeddings)
 
     def match_texts(self, original_text, revised_text):
-        original_sentences = self.preprocess_text(original_text)
-        revised_sentences = self.preprocess_text(revised_text)
+        original_paragraphs = self.preprocess_text(original_text)
+        revised_paragraphs = self.preprocess_text(revised_text)
+
+        original_sentences = [sent for para in original_paragraphs for sent in para]
+        revised_sentences = [sent for para in revised_paragraphs for sent in para]
 
         similarity_matrix = self.compute_similarity_matrix(
             original_sentences, revised_sentences
@@ -27,7 +48,7 @@ class TextMatcher:
         matches = self.find_matches(similarity_matrix)
         split_sentences = self.detect_split_sentences(similarity_matrix)
 
-        return original_sentences, revised_sentences, matches, split_sentences
+        return original_paragraphs, revised_paragraphs, matches, split_sentences
 
     def find_matches(self, similarity_matrix, threshold=0.5):
         matches = []
@@ -42,7 +63,7 @@ class TextMatcher:
     ):
         split_sentences = []
         for i in range(similarity_matrix.shape[0]):
-            potential_splits = np.where(similarity_matrix[i] > threshold)[0]
+            potential_splits = np.nonzero(similarity_matrix[i] > threshold)[0]
             if len(potential_splits) > 1:
                 total_similarity = np.sum(similarity_matrix[i, potential_splits])
                 if total_similarity > split_threshold:
@@ -52,9 +73,12 @@ class TextMatcher:
         return split_sentences
 
     def analyze_changes(
-        self, original_sentences, revised_sentences, matches, split_sentences
+        self, original_paragraphs, revised_paragraphs, matches, split_sentences
     ):
         changes = []
+        original_sentences = [sent for para in original_paragraphs for sent in para]
+        revised_sentences = [sent for para in revised_paragraphs for sent in para]
+
         matched_original = set(m[0] for m in matches)
         matched_revised = set(m[1] for m in matches)
 
