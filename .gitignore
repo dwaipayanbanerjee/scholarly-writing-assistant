@@ -5,3 +5,4 @@
 .macstudiovenv
 *.pyc
 *.pyo
+__pycache__/
