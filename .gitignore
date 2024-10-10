@@ -3,6 +3,8 @@
 .env
 .macstudiovenv/*
 .macstudiovenv
+.macbookvenv/*
+.macbookvenv
 *.pyc
 *.pyo
 __pycache__/

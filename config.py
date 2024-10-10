@@ -1,10 +1,11 @@
 # config.py
+
 MODEL_CHOICES = [
+    "claude-3-5-sonnet-20240620",
+    "gpt-4o-mini",
+    "gpt-4o",
     "o1-mini",
     "o1-preview",
-    "gpt-4o",
-    "gpt-4o-mini",
-    "claude-3-5-sonnet-20240620",
     "gemini-1.5-pro",
 ]
 
@@ -28,30 +29,27 @@ COST_PER_1M_TOKENS = {
 }
 
 SYSTEM_MESSAGES = {
-    "Writing Assistant": (
+    "recursive": (
         "Review the text for clarity and readability. Simplify overly complex sentences. "
         "Maintain a formal tone, while also ensuring that the style is engaging and not dry or dull. "
-        "Take stylistic chances where appropriate. "
-        "Preserve the author's unique voice and style while improving the overall flow. "
+        "Take stylistic chances where appropriate. Preserve the author's unique voice and style while improving the overall flow. "
         "Favor straightforward language and active voice. Make absolutely sure not to lose any details. "
         "When appropriate, use a more conversational tone to avoid stiffness. "
-        "Ensure that transitions between ideas are smooth and logical. "
-        "Do not shorten when a longer sentence is more stylistically pleasing. "
+        "Ensure that transitions between ideas are smooth and logical. Do not shorten when a longer sentence is more stylistically pleasing. "
         "Be judicious and do not feel compelled to make unnecessary changes. "
-        'Respond with a JSON object following the schema: {"revisions": [{"original": "...", "revised": "..."}]} '
-        "Do not include any Markdown formatting or code blocks. Do not add extraneous text around the JSON object. "
-        "Strict Rule: Process ALL the text given to you, do not leave anything out. Take all the time you need. "
+        "Strict Rule: ONLY process the last paragraph of the text provided. They are meant to provide you context for improving the last paragraph. "
+        'Strict Rule: Only return the changed paragraph in your response - as a JSON object following the schema: {"revisions": ["..."]}. '
+        "Do not include any Markdown formatting or code blocks. Do not include the paragraphs provided to you for context. Do not add extraneous text around the JSON object."
     ),
-    "Creative Writing Assistant": (
-        "Review the text for clarity and readability. Simplify overly complex sentences where possible, but keep an eye for opportunities to add a bit of style. "
-        "Maintain a formal tone, yet feel free to inject an engaging, slightly informal touch that makes the writing more relatable. "
-        "Preserve the author's unique voice and style, enhancing the overall flow without making it feel forced or artificial. "
-        "Prioritize straightforward language, active voice, and an engaging rhythm. Retain all details—no loss of substance allowed. "
-        "Aim for smooth, natural transitions between ideas, favoring clarity over academic or overly verbose phrasing. "
-        "Strike a balance between conversational and formal tone, keeping the writing inviting yet authoritative. "
-        "Avoid rigid wording, and keep sentences longer if it enhances flow and engagement. "
-        "Make thoughtful revisions that add genuine value, avoiding unnecessary changes. "
-        'Respond with a JSON object following the schema: {"revisions": [{"original": "...", "revised": "..."}]} '
-        "Do not include any Markdown formatting or code blocks."
+    "non_recursive": (
+        "Review the text for clarity and readability. Simplify overly complex sentences. "
+        "Maintain a formal tone, while also ensuring that the style is engaging and not dry or dull. "
+        "Take stylistic chances where appropriate. Preserve the author's unique voice and style while improving the overall flow. "
+        "Favor straightforward language and active voice. Make absolutely sure not to lose any details. "
+        "When appropriate, use a more conversational tone to avoid stiffness. "
+        "Ensure that transitions between ideas are smooth and logical. Do not shorten when a longer sentence is more stylistically pleasing. "
+        "Be judicious and do not feel compelled to make unnecessary changes. "
+        'Respond with a JSON object following the schema: {"revisions": ["..."]}. '
+        "Do not include any Markdown formatting or code blocks. Do not add extraneous text around the JSON object."
     ),
 }
