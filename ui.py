@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont, QTextCursor, QTextBlockFormat
 from PyQt6.QtCore import Qt, pyqtSlot
-from config import MODEL_CHOICES, SYSTEM_MESSAGES
+from config import MODEL_CHOICES, MAX_OUTPUT_TOKENS, MAX_CONTEXT_WINDOW
 
 
 class MainWindow(QMainWindow):
@@ -26,8 +26,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.logic_handler = logic_handler
         self.default_font_family = "Verdana"
-        self.default_font_size = 16
-        self.gui_font_size = 10
+        self.default_font_size = 22
+        self.gui_font_size = 14
         self.line_spacing = 120
         self.temperature = 0.7  # Initialize to 0.7 (70%)
 
@@ -152,10 +152,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.progress_bar)
 
         # Cost estimate
-        self.cost_label = QLabel(
-            "Estimated cost: $0.00 (Non-recursive) / $0.00 (Recursive)"
+        self.cost_estimate_label = QLabel(
+            "Estimated cost: $0.00 (Non-recursive) / $0.00 (Recursive)\n"
+            "Estimated tokens: 0 (Non-recursive) / 0 (Recursive)"
         )
-        layout.addWidget(self.cost_label)
+        layout.addWidget(self.cost_estimate_label)
 
         # Word count
         self.word_count_label = QLabel("Word count: 0")
@@ -166,52 +167,103 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.status_bar)
 
     def connect_signals(self):
-        # Connect UI elements to LogicHandler methods
-        self.remove_footnotes_checkbox.stateChanged.connect(
-            self.on_remove_footnotes_changed
-        )
+        # Removed the connection to update_costs signal
+        # self.logic_handler.update_costs.connect(self.update_cost_display)
+
         self.temperature_slider.valueChanged.connect(self.update_temperature)
         self.improve_button.clicked.connect(self.logic_handler.on_send_button_clicked)
         self.recursive_button.clicked.connect(
             self.logic_handler.on_recursive_button_clicked
         )
-        self.input_box.textChanged.connect(self.update_word_count)
-        self.input_box.textChanged.connect(self.logic_handler.calculate_cost_estimate)
-        self.model_combo.currentTextChanged.connect(self.logic_handler.on_model_changed)
         self.clear_button.clicked.connect(self.clear_text_areas)
+        self.remove_footnotes_checkbox.stateChanged.connect(
+            self.logic_handler.toggle_remove_footnotes
+        )
 
         # Connect LogicHandler signals to UI update methods
         self.logic_handler.update_status.connect(self.status_bar.showMessage)
         self.logic_handler.update_revised_text.connect(self.revised_view.setText)
-        self.logic_handler.update_cost_estimate.connect(self.update_cost_estimate)
         self.logic_handler.update_progress.connect(self.set_progress)
+        self.logic_handler.update_cost_estimate.connect(
+            self.update_cost_estimate_display
+        )
 
-    def on_remove_footnotes_changed(self, state):
-        self.logic_handler.remove_footnotes_enabled = state == Qt.CheckState.Checked
-        self.logic_handler.calculate_cost_estimate()
+        # Connect text and model changes with cost recalculations
+        self.input_box.textChanged.connect(self.logic_handler.handle_text_changed)
+        self.model_combo.currentTextChanged.connect(self.logic_handler.on_model_changed)
 
     def update_temperature(self, value):
         self.temperature = value / 100  # Convert to 0-1 range
         self.temp_label.setText(f"{value}%")
         self.logic_handler.temperature = self.temperature
-        self.logic_handler.calculate_cost_estimate()
 
-    @pyqtSlot(float, int, int, float, int, int)
-    def update_cost_estimate(
+    @pyqtSlot(float, float, int, int, bool)
+    def update_cost_estimate_display(
         self,
         non_recursive_cost,
-        non_recursive_input_tokens,
-        non_recursive_output_tokens,
         recursive_cost,
-        recursive_input_tokens,
-        recursive_output_tokens,
+        non_rec_tokens,
+        rec_estimated_tokens,
+        is_recursive,
     ):
-        total_input = non_recursive_input_tokens + recursive_input_tokens
-        total_output = non_recursive_output_tokens + recursive_output_tokens
-        self.cost_label.setText(
-            f"Estimated cost: ${non_recursive_cost:.4f} (Non-recursive) / ${recursive_cost:.4f} (Recursive)\n"
-            f"Total tokens: {total_input} input, {total_output} output"
-        )
+        model = self.model_combo.currentText()
+        max_output = MAX_OUTPUT_TOKENS.get(model, float("inf"))
+        max_context = MAX_CONTEXT_WINDOW.get(model, float("inf"))
+
+        # Build cost estimate strings
+        cost_text = "Estimated cost: "
+        tokens_text = "Estimated tokens: "
+
+        # Determine which limit to check based on mode
+        if is_recursive:
+            # Recursive Mode: Check against MAX_CONTEXT_WINDOW
+            if non_rec_tokens > max_context:
+                # Exceeds MAX_CONTEXT_WINDOW
+                non_rec_cost_text = f'<span style="color:red">${non_recursive_cost:.6f} (Non-recursive)</span>'
+                non_rec_tokens_text = (
+                    f'<span style="color:red">{non_rec_tokens} (Non-recursive)</span>'
+                )
+            else:
+                non_rec_cost_text = f"${non_recursive_cost:.6f} (Non-recursive)"
+                non_rec_tokens_text = f"{non_rec_tokens} (Non-recursive)"
+
+            # For Recursive Mode, no need to check rec_estimated_tokens
+            rec_cost_text = f"${recursive_cost:.6f} (Recursive)"
+            rec_tokens_text = f"{rec_estimated_tokens} (Recursive)"
+
+        else:
+            # Non-Recursive Mode: Check against MAX_OUTPUT_TOKENS
+            if non_rec_tokens > max_output:
+                # Exceeds MAX_OUTPUT_TOKENS
+                non_rec_cost_text = f'<span style="color:red">${non_recursive_cost:.6f} (Non-recursive)</span>'
+                non_rec_tokens_text = (
+                    f'<span style="color:red">{non_rec_tokens} (Non-recursive)</span>'
+                )
+            else:
+                non_rec_cost_text = f"${non_recursive_cost:.6f} (Non-recursive)"
+                non_rec_tokens_text = f"{non_rec_tokens} (Non-recursive)"
+
+            # Check Recursive tokens against MAX_CONTEXT_WINDOW
+            if rec_estimated_tokens > max_context:
+                rec_cost_text = (
+                    f'<span style="color:red">${recursive_cost:.6f} (Recursive)</span>'
+                )
+                rec_tokens_text = (
+                    f'<span style="color:red">{rec_estimated_tokens} (Recursive)</span>'
+                )
+            else:
+                rec_cost_text = f"${recursive_cost:.6f} (Recursive)"
+                rec_tokens_text = f"{rec_estimated_tokens} (Recursive)"
+
+        cost_text += f"{non_rec_cost_text} / {rec_cost_text}"
+        tokens_text += f"{non_rec_tokens_text} / {rec_tokens_text}"
+
+        self.cost_estimate_label.setText(f"{cost_text}\n{tokens_text}")
+
+    def clear_text_areas(self):
+        self.input_box.clear()
+        self.revised_view.clear()
+        self.logic_handler.update_cost_estimates()
 
     def set_progress(self, current, total):
         self.progress_bar.setRange(0, total)
@@ -225,8 +277,3 @@ class MainWindow(QMainWindow):
         text = self.input_box.toPlainText()
         word_count = len(text.split())
         self.word_count_label.setText(f"Word count: {word_count}")
-
-    def clear_text_areas(self):
-        self.input_box.clear()
-        self.revised_view.clear()
-        self.logic_handler.calculate_cost_estimate()

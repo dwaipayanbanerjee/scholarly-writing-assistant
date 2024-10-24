@@ -1,5 +1,4 @@
 # main.py
-
 import sys
 from PyQt6.QtWidgets import QApplication
 from qasync import QEventLoop
@@ -10,6 +9,7 @@ import asyncio
 
 def main():
     app = QApplication(sys.argv)
+
     app.setStyle("Mac")
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
@@ -17,6 +17,7 @@ def main():
     logic_handler = LogicHandler()
     window = MainWindow(logic_handler)
     logic_handler.set_ui(window)  # Set the UI after it's created
+
     window.show()
 
     with loop:
