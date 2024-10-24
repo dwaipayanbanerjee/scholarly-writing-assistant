@@ -66,17 +66,17 @@ async def get_claude_response(prompt: str, system_message: str):
     full_prompt = f"{system_message}\n\n{prompt}\n"
     message = await asyncio.to_thread(
         anthropic_client.messages.create,
-        model="claude-3-5-sonnet-20241022",
+        model="claude-3-5-sonnet-latest",
         max_tokens=8192,
         messages=[{"role": "user", "content": full_prompt}],
     )
     content = message.content[0].text
-    input_tokens = estimate_tokens(full_prompt, "claude-3-5-sonnet-20241022")
-    output_tokens = estimate_tokens(content, "claude-3-5-sonnet-20241022")
+    input_tokens = estimate_tokens(full_prompt, "claude-3-5-sonnet-latest")
+    output_tokens = estimate_tokens(content, "claude-3-5-sonnet-latest")
 
     # Calculate and track the actual cost
     actual_cost = calculate_cost_from_usage(
-        "claude-3-5-sonnet-20241022", input_tokens, output_tokens
+        "claude-3-5-sonnet-latest", input_tokens, output_tokens
     )
     cost_tracker.add_cost(actual_cost)
 

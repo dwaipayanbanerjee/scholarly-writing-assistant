@@ -1,30 +1,33 @@
 # config.py
 
 MODEL_CHOICES = [
-    "claude-3-5-sonnet-20241022",
+    "claude-3-5-sonnet-latest",
     "gpt-4o-mini",
     "gpt-4o",
     "o1-mini",
     "o1-preview",
     "gemini-1.5-pro",
+    "claude-3-opus-20240229",
 ]
 
 MAX_OUTPUT_TOKENS = {
-    "claude-3-5-sonnet-20241022": 8192,
+    "claude-3-5-sonnet-latest": 8192,
     "gpt-4o": 16384,
     "gpt-4o-mini": 16384,
     "o1-preview": 32768,
     "o1-mini": 65536,
     "gemini-1.5-pro": 8192,
+    "claude-3-opus-20240229": 4096,
 }
 
 MAX_CONTEXT_WINDOW = {
-    "claude-3-5-sonnet-20241022": 200000,
+    "claude-3-5-sonnet-latest": 200000,
     "gpt-4o": 128000,
     "gpt-4o-mini": 128000,
     "o1-preview": 128000,
     "o1-mini": 128000,
     "gemini-1.5-pro": 2000000,
+    "claude-3-opus-20240229": 200000,
 }
 
 # Cost per 1M tokens
@@ -33,7 +36,8 @@ COST_PER_1M_TOKENS = {
     "gpt-4o-mini": {"input": 0.150, "output": 0.600},
     "o1-preview": {"input": 15.00, "output": 60.00},
     "o1-mini": {"input": 3.00, "output": 12.00},
-    "claude-3-5-sonnet-20241022": {"input": 3.00, "output": 15.00},
+    "claude-3-5-sonnet-latest": {"input": 3.00, "output": 15.00},
+    "claude-3-opus-20240229": {"input": 15.00, "output": 75.00},
     "gemini-1.5-pro": {"input": 1.25, "output": 5.00},
 }
 
