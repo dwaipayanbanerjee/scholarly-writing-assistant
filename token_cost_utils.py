@@ -24,12 +24,14 @@ def estimate_tokens(text: str, model: str) -> int:
     elif model.startswith("claude-"):
         token_count = anthropic_client.count_tokens(text)
         return token_count
-    elif model == "gemini-1.5-pro":
-
-        counting_model = genai.GenerativeModel(model_name=model)
-        total_tokens = counting_model.count_tokens(text)
-        total_tokens = total_tokens.total_tokens
-        return total_tokens
+    elif model.startswith("gem"):
+        try:
+            counting_model = genai.GenerativeModel(model_name=model)
+            total_tokens = counting_model.count_tokens(text)
+            total_tokens = total_tokens.total_tokens
+            return total_tokens
+        except:
+            return 0
     else:
         raise ValueError(f"Unsupported model: {model}")
 
@@ -113,7 +115,7 @@ def calculate_cost_from_usage(
 ) -> float:
     """Calculate the actual cost based on token usage."""
     if model not in COST_PER_1M_TOKENS:
-        raise ValueError(f"Cost information not available for model: {model}")
+        return 0
 
     input_cost = (input_tokens / 1_000_000) * COST_PER_1M_TOKENS[model]["input"]
     output_cost = (output_tokens / 1_000_000) * COST_PER_1M_TOKENS[model]["output"]

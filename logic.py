@@ -12,7 +12,12 @@ from api_calls import (
     get_claude_response,
     get_gemini_response,
 )
-from config import SYSTEM_MESSAGES, MAX_CONTEXT_WINDOW  # Imported MAX_CONTEXT_WINDOW
+from config import (
+    SYSTEM_MESSAGES,
+    MAX_CONTEXT_WINDOW,
+    USER_MESSAGE_TEMPLATE,
+)  # Imported MAX_CONTEXT_WINDOW
+from dataclasses import dataclass
 from datetime import datetime
 
 # Configure logging for logic.py
@@ -24,14 +29,25 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 from token_cost_utils import calculate_cost
-from cost_tracker import cost_tracker
-
 
 class WritingResponse(BaseModel):
     revisions: List[str]
 
 
+@dataclass
+class ProcessingStats:
+    start_time: datetime
+    paragraphs_processed: int
+    total_paragraphs: int
+    tokens_processed: int
+    total_cost: float
+    errors_encountered: int
+
+
 class LogicHandler(QObject):
+    processing_stats_updated = pyqtSignal(ProcessingStats)
+    processing_complete = pyqtSignal(ProcessingStats)
+    error_occurred = pyqtSignal(str, str)  # error_type, error_message
     update_progress = pyqtSignal(int, int)
     update_status = pyqtSignal(str)
     update_revised_text = pyqtSignal(str)
@@ -46,6 +62,33 @@ class LogicHandler(QObject):
         self.current_model = None
         self.total_cost = 0.0
         self.ui = None
+        self.stats = None
+        self.processing_cancelled = False
+
+    def start_processing(self):
+        """Initialize processing stats"""
+        self.stats = ProcessingStats(
+            start_time=datetime.now(),
+            paragraphs_processed=0,
+            total_paragraphs=0,
+            tokens_processed=0,
+            total_cost=0.0,
+            errors_encountered=0,
+        )
+        self.processing_cancelled = False
+
+    def update_processing_stats(self, tokens=0, cost=0.0):
+        """Update processing statistics"""
+        if self.stats:
+            self.stats.tokens_processed += tokens
+            self.stats.total_cost += cost
+            self.stats.paragraphs_processed += 1
+            self.processing_stats_updated.emit(self.stats)
+
+    def cancel_processing(self):
+        """Cancel ongoing processing"""
+        self.processing_cancelled = True
+        self.update_status.emit("Processing cancelled by user")
 
     def set_ui(self, ui):
         self.ui = ui
@@ -171,28 +214,31 @@ class LogicHandler(QObject):
         )
 
     async def process_non_recursive(self, text, model, temperature):
-        system_message = SYSTEM_MESSAGES["non_recursive"]
-        response_content, _, _ = await self.send_api_request(
-            text, system_message, model, temperature=temperature
-        )
+        try:
+            system_message = SYSTEM_MESSAGES["non_recursive"]
+            user_message = USER_MESSAGE_TEMPLATE.format(text=text)
 
-        response_json = json.loads(self.strip_code_blocks(response_content))
-        result = WritingResponse(**response_json)
-        revised_text = "\n\n".join(result.revisions) if result.revisions else text
+            response_content, _, _ = await self.send_api_request(
+                user_message, system_message, model, temperature=temperature
+            )
 
-        with open(
-            f"non_recursive_output-{datetime.now().strftime('%Y%m%d%H%M%S')}.txt", "w"
-        ) as f:
-            f.write(revised_text)
+            response_json = json.loads(self.strip_code_blocks(response_content))
+            result = WritingResponse(**response_json)
+            revised_text = "\n\n".join(result.revisions) if result.revisions else text
 
-        return revised_text
+            with open(
+                f"non_recursive_output-{datetime.now().strftime('%Y%m%d%H%M%S')}.txt", "w"
+            ) as f:
+                f.write(revised_text)
+
+            return revised_text
+        except Exception as e:
+            self.error_occurred.emit("Response format Error", str(e))
+            return "Processing error occurred. Try again."
 
     async def process_recursive(self, paragraphs, model, temperature):
-        max_context = MAX_CONTEXT_WINDOW.get(model, float("inf"))  # Get max context
-
-        with open("recursive_input.txt", "w") as f:
-            for para in paragraphs:
-                f.write(para + "\n")
+        max_context = MAX_CONTEXT_WINDOW.get(model, float("inf"))
+        system_message = SYSTEM_MESSAGES["recursive"]
 
         improved_paragraphs = []
         cumulative_context = ""
@@ -202,31 +248,34 @@ class LogicHandler(QObject):
             )
 
             if idx == 1:
-                system_message = SYSTEM_MESSAGES["non_recursive"]
-                prompt = para
+                user_message = USER_MESSAGE_TEMPLATE.format(text=para)
             else:
-                system_message = SYSTEM_MESSAGES["recursive"]
-                prompt = f"{cumulative_context}\n\n{para}"
+                context_with_current = f"{cumulative_context}\n\n{para}"
+                user_message = USER_MESSAGE_TEMPLATE.format(text=context_with_current)
 
                 # Check if the prompt exceeds MAX_CONTEXT_WINDOW
                 input_tokens = calculate_cost(
                     model,
-                    cumulative_context + "\n\n" + para,
                     system_message,
+                    user_message,
                     recursive=True,
                 )["total_tokens"]
+
                 if input_tokens > max_context:
                     self.update_status.emit(
                         f"Max context window exceeded at paragraph {idx}. Truncating context."
                     )
-                    # Truncate the cumulative_context to fit within the max context
                     while input_tokens > max_context and improved_paragraphs:
-                        removed_para = improved_paragraphs.pop(0)
+                        _ = improved_paragraphs.pop(0)
                         cumulative_context = "\n\n".join(improved_paragraphs)
+                        context_with_current = f"{cumulative_context}\n\n{para}"
+                        user_message = USER_MESSAGE_TEMPLATE.format(
+                            text=context_with_current
+                        )
                         input_tokens = calculate_cost(
                             model,
-                            cumulative_context + "\n\n" + para,
                             system_message,
+                            user_message,
                             recursive=True,
                         )["total_tokens"]
                     if input_tokens > max_context:
@@ -237,7 +286,7 @@ class LogicHandler(QObject):
                         continue
 
             response_content, _, _ = await self.send_api_request(
-                prompt, system_message, model, temperature=temperature
+                user_message, system_message, model, temperature=temperature
             )
 
             try:
@@ -257,7 +306,7 @@ class LogicHandler(QObject):
             f"recursive_output-{datetime.now().strftime('%Y%m%d%H%M%S')}.txt", "w"
         ) as f:
             for paragraph in improved_paragraphs:
-                f.write(paragraph + "\n")  # Write each item with a newline at the end
+                f.write(paragraph + "\n")
 
         return "\n\n".join(improved_paragraphs)
 
@@ -270,7 +319,7 @@ class LogicHandler(QObject):
             )
         elif model.startswith("claude-"):
             response = await get_claude_response(prompt, system_message)
-        elif model == "gemini-1.5-pro":
+        elif model.startswith("gem"):
             response = await get_gemini_response(prompt, system_message)
         else:
             raise ValueError(f"Unsupported model: {model}")

@@ -4,8 +4,6 @@ import anthropic
 import google.generativeai as genai
 from dotenv import load_dotenv
 import asyncio
-import re
-import json
 from token_cost_utils import estimate_tokens
 
 from cost_tracker import cost_tracker
@@ -102,15 +100,39 @@ async def get_gemini_response(prompt: str, system_message: str):
 
 def clean_json(text: str) -> str:
     """
-    Extracts the JSON object from the text.
+    Systematically cleans and validates JSON text by:
+    1. Handling surrounding quotes
+    2. Normalizing escape sequences
+    3. Ensuring proper JSON formatting
     """
-    json_pattern = re.compile(r"(\{.*?\})", re.DOTALL)
-
-    matches = json_pattern.findall(text)
-    for match in matches:
-        try:
-            json.loads(match)  # Validate JSON
-            return match.strip()  # Return the first valid JSON object found
-        except json.JSONDecodeError:
-            continue
-    return text.strip()  # If no valid JSON object is found, return the original text
+    import json
+    
+    # 1. Remove surrounding quotes if they exist
+    text = text.strip()
+    if text.startswith("'") and text.endswith("'"):
+        text = text[1:-1]
+    elif text.startswith('"') and text.endswith('"'):
+        text = text[1:-1]
+    
+    # 2. Create a proper escape sequence map
+    escape_map = {
+        '\n': '\\n',  # newlines
+        "'": "\\'",   # single quotes
+        '"': '\\"',   # double quotes
+        '\t': '\\t',  # tabs
+        '\r': '\\r',  # carriage returns
+        '\b': '\\b',  # backspace
+        '\f': '\\f'   # form feed
+    }
+    
+    # 3. Apply escaping systematically
+    for char, escape in escape_map.items():
+        text = text.replace(char, escape)
+    
+    try:
+        # 4. Validate and normalize JSON
+        parsed = json.loads(text)
+        return json.dumps(parsed)
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {str(e)}")
+        raise
