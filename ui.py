@@ -18,8 +18,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont, QTextCursor, QTextBlockFormat
 from PyQt6.QtCore import Qt, pyqtSlot
-from config import MODEL_CHOICES, MAX_OUTPUT_TOKENS, MAX_CONTEXT_WINDOW
-
+from config import MODEL_CHOICES
 
 class MainWindow(QMainWindow):
     def __init__(self, logic_handler):
@@ -35,7 +34,7 @@ class MainWindow(QMainWindow):
         self.connect_signals()
 
     def setup_ui(self):
-        self.setWindowTitle("Simplified Writing Assistant")
+        self.setWindowTitle("Writing Assistant")
         self.setMinimumSize(1000, 700)
 
         main_layout = QVBoxLayout()
@@ -65,9 +64,7 @@ class MainWindow(QMainWindow):
         self.input_box.setAcceptRichText(False)
 
         self.revised_view = QTextEdit()
-        self.revised_view.setFont(
-            QFont(self.default_font_family, self.default_font_size)
-        )
+        self.revised_view.setFont(QFont(self.default_font_family, self.default_font_size))
         self.revised_view.setPlaceholderText("Revised text will appear here...")
         self.revised_view.setReadOnly(True)
         self.set_line_spacing(self.revised_view, self.line_spacing)
@@ -99,11 +96,11 @@ class MainWindow(QMainWindow):
         self.model_combo.addItems(MODEL_CHOICES)
         self.model_combo.setToolTip("Select the AI model to use for text improvement")
         model_layout.addWidget(self.model_combo)
-        model_layout.addStretch()  # This pushes the model selector to the left
+        model_layout.addStretch()
 
         # Temperature control (right-aligned)
         temp_layout = QHBoxLayout()
-        temp_layout.addStretch()  # This pushes the temperature control to the right
+        temp_layout.addStretch()
         temp_layout.addWidget(QLabel("Temperature:"))
         self.temperature_slider = QSlider(Qt.Orientation.Horizontal)
         self.temperature_slider.setRange(0, 100)
@@ -129,17 +126,10 @@ class MainWindow(QMainWindow):
         )
         layout.addWidget(self.remove_footnotes_checkbox)
 
-        # Action buttons
-        button_layout = QHBoxLayout()
+        # Improve button
         self.improve_button = QPushButton("Improve Writing")
-        self.improve_button.setToolTip("Process the input text once")
-        self.recursive_button = QPushButton("Recursive Improvement")
-        self.recursive_button.setToolTip(
-            "Process the input text multiple times for deeper improvement"
-        )
-        button_layout.addWidget(self.improve_button)
-        button_layout.addWidget(self.recursive_button)
-        layout.addLayout(button_layout)
+        self.improve_button.setToolTip("Process and improve the input text")
+        layout.addWidget(self.improve_button)
 
         # Clear button
         self.clear_button = QPushButton("Clear")
@@ -152,10 +142,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.progress_bar)
 
         # Cost estimate
-        self.cost_estimate_label = QLabel(
-            "Estimated cost: $0.00 (Non-recursive) / $0.00 (Recursive)\n"
-            "Estimated tokens: 0 (Non-recursive) / 0 (Recursive)"
-        )
+        self.cost_estimate_label = QLabel("Estimated cost: $0.00\nEstimated tokens: 0")
         layout.addWidget(self.cost_estimate_label)
 
         # Word count
@@ -167,14 +154,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.status_bar)
 
     def connect_signals(self):
-        # Removed the connection to update_costs signal
-        # self.logic_handler.update_costs.connect(self.update_cost_display)
-
         self.temperature_slider.valueChanged.connect(self.update_temperature)
-        self.improve_button.clicked.connect(self.logic_handler.on_send_button_clicked)
-        self.recursive_button.clicked.connect(
-            self.logic_handler.on_recursive_button_clicked
-        )
+        self.improve_button.clicked.connect(self.logic_handler.on_improve_button_clicked)
         self.clear_button.clicked.connect(self.clear_text_areas)
         self.remove_footnotes_checkbox.stateChanged.connect(
             self.logic_handler.toggle_remove_footnotes
@@ -184,9 +165,7 @@ class MainWindow(QMainWindow):
         self.logic_handler.update_status.connect(self.status_bar.showMessage)
         self.logic_handler.update_revised_text.connect(self.revised_view.setText)
         self.logic_handler.update_progress.connect(self.set_progress)
-        self.logic_handler.update_cost_estimate.connect(
-            self.update_cost_estimate_display
-        )
+        self.logic_handler.update_cost_estimate.connect(self.update_cost_estimate_display)
 
         # Connect text and model changes with cost recalculations
         self.input_box.textChanged.connect(self.logic_handler.handle_text_changed)
@@ -197,68 +176,12 @@ class MainWindow(QMainWindow):
         self.temp_label.setText(f"{value}%")
         self.logic_handler.temperature = self.temperature
 
-    @pyqtSlot(float, float, int, int, bool)
-    def update_cost_estimate_display(
-        self,
-        non_recursive_cost,
-        recursive_cost,
-        non_rec_tokens,
-        rec_estimated_tokens,
-        is_recursive,
-    ):
-        model = self.model_combo.currentText()
-        max_output = MAX_OUTPUT_TOKENS.get(model, float("inf"))
-        max_context = MAX_CONTEXT_WINDOW.get(model, float("inf"))
-
-        # Build cost estimate strings
-        cost_text = "Estimated cost: "
-        tokens_text = "Estimated tokens: "
-
-        # Determine which limit to check based on mode
-        if is_recursive:
-            # Recursive Mode: Check against MAX_CONTEXT_WINDOW
-            if non_rec_tokens > max_context:
-                # Exceeds MAX_CONTEXT_WINDOW
-                non_rec_cost_text = f'<span style="color:red">${non_recursive_cost:.6f} (Non-recursive)</span>'
-                non_rec_tokens_text = (
-                    f'<span style="color:red">{non_rec_tokens} (Non-recursive)</span>'
-                )
-            else:
-                non_rec_cost_text = f"${non_recursive_cost:.6f} (Non-recursive)"
-                non_rec_tokens_text = f"{non_rec_tokens} (Non-recursive)"
-
-            # For Recursive Mode, no need to check rec_estimated_tokens
-            rec_cost_text = f"${recursive_cost:.6f} (Recursive)"
-            rec_tokens_text = f"{rec_estimated_tokens} (Recursive)"
-
-        else:
-            # Non-Recursive Mode: Check against MAX_OUTPUT_TOKENS
-            if non_rec_tokens > max_output:
-                # Exceeds MAX_OUTPUT_TOKENS
-                non_rec_cost_text = f'<span style="color:red">${non_recursive_cost:.6f} (Non-recursive)</span>'
-                non_rec_tokens_text = (
-                    f'<span style="color:red">{non_rec_tokens} (Non-recursive)</span>'
-                )
-            else:
-                non_rec_cost_text = f"${non_recursive_cost:.6f} (Non-recursive)"
-                non_rec_tokens_text = f"{non_rec_tokens} (Non-recursive)"
-
-            # Check Recursive tokens against MAX_CONTEXT_WINDOW
-            if rec_estimated_tokens > max_context:
-                rec_cost_text = (
-                    f'<span style="color:red">${recursive_cost:.6f} (Recursive)</span>'
-                )
-                rec_tokens_text = (
-                    f'<span style="color:red">{rec_estimated_tokens} (Recursive)</span>'
-                )
-            else:
-                rec_cost_text = f"${recursive_cost:.6f} (Recursive)"
-                rec_tokens_text = f"{rec_estimated_tokens} (Recursive)"
-
-        cost_text += f"{non_rec_cost_text} / {rec_cost_text}"
-        tokens_text += f"{non_rec_tokens_text} / {rec_tokens_text}"
-
-        self.cost_estimate_label.setText(f"{cost_text}\n{tokens_text}")
+    @pyqtSlot(float, int)
+    def update_cost_estimate_display(self, cost, tokens):
+        self.cost_estimate_label.setText(
+            f"Estimated cost: ${cost:.6f}\n"
+            f"Estimated tokens: {tokens}"
+        )
 
     def clear_text_areas(self):
         self.input_box.clear()
