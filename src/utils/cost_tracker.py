@@ -4,11 +4,11 @@ from threading import Lock
 
 
 class CostTracker:
-    def __init__(self):
+    def __init__(self) -> None:
         self._total_cost = 0.0
         self._lock = Lock()
 
-    def add_cost(self, cost: float):
+    def add_cost(self, cost: float) -> None:
         with self._lock:
             self._total_cost += cost
 

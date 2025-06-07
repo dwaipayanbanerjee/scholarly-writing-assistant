@@ -2,12 +2,12 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 from qasync import QEventLoop
-from ui import MainWindow
-from logic import LogicHandler
+from src.ui.main_window import MainWindow
+from src.core.logic import LogicHandler
 import asyncio
 
 
-def main():
+def main() -> None:
     app = QApplication(sys.argv)
 
     app.setStyle("Mac")
