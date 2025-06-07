@@ -1,0 +1,105 @@
+# Model Configuration for Writing Assistant - Final June 2025
+# Prices are per million tokens (input/output)
+models:
+  # OpenAI Models
+  gpt-4.5-preview:
+    name: "GPT-4.5 Preview"
+    api_model: "gpt-4.5-preview"
+    provider: openai
+    input_cost: 75
+    output_cost: 150
+    max_tokens: 16384
+    context_window: 128000
+    status: "deprecated_july_2025"
+    notes: "Being phased out July 14, 2025 - use GPT-4.1 instead"
+
+  gpt-4.1:
+    name: "GPT-4.1"
+    api_model: "gpt-4.1"
+    provider: openai
+    input_cost: 2
+    output_cost: 8
+    max_tokens: 32768
+    context_window: 1047576
+    notes: "Latest flagship model with 1M token context"
+
+  o3:
+    name: "o3"
+    api_model: "o3"
+    provider: openai
+    input_cost: 10
+    output_cost: 40
+    max_tokens: 100000
+    context_window: 200000
+    notes: "Most powerful reasoning model for coding, math, science, and vision"
+
+  # Anthropic Claude Models
+  claude-opus-4:
+    name: "Claude Opus 4"
+    api_model: "claude-opus-4-20250514"
+    provider: claude
+    input_cost: 15
+    output_cost: 75
+    max_tokens: 32000
+    context_window: 200000
+    notes: "Most capable Claude model with extended thinking"
+
+  claude-sonnet-4:
+    name: "Claude Sonnet 4"
+    api_model: "claude-sonnet-4-20250514"
+    provider: claude
+    input_cost: 3
+    output_cost: 15
+    max_tokens: 64000
+    context_window: 200000
+    notes: "Balanced performance and efficiency"
+
+  # Google Gemini Models
+  gemini-2.5-pro:
+    name: "Gemini 2.5 Pro"
+    api_model: "gemini-2.5-pro-preview-06-05"
+    provider: gemini
+    input_cost: 1.25  # ≤200k tokens
+    output_cost: 10   # including thinking tokens
+    input_cost_long: 2.5  # >200k tokens
+    output_cost_long: 15
+    max_tokens: 65536
+    context_window: 1048576  # 1M tokens
+    notes: "Most advanced reasoning model with thinking"
+
+  gemini-2.5-flash:
+    name: "Gemini 2.5 Flash"
+    api_model: "gemini-2.5-flash-preview-05-20"
+    provider: gemini
+    input_cost: 0.15
+    output_cost_regular: 0.6  # non-thinking
+    output_cost_thinking: 3.5  # thinking tokens
+    max_tokens: 65536
+    context_window: 1048576
+    notes: "First Flash model with thinking capabilities"
+
+# Default models for three panels
+default_models:
+  - gpt-4.1
+  - claude-sonnet-4
+  - gemini-2.5-pro
+
+# Performance tiers
+cost_effective:
+  - gemini-2.5-flash
+  - claude-sonnet-4
+  - gpt-4o
+
+high_performance:
+  - o3
+  - claude-opus-4
+  - gemini-2.5-pro
+
+# Notes
+# - Prices as of June 2025, per million tokens, subject to change
+# - GPT-4.5 will be deprecated July 14, 2025
+# - o3 model includes cached input pricing for efficiency
+# - Claude 4 models support extended thinking mode
+# - Gemini 2.5 models have different pricing for long vs short context
+# - Gemini 2.5 Flash has separate pricing for thinking vs non-thinking tokens
+# - All models support multimodal capabilities

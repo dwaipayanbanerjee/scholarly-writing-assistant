@@ -1,191 +1,129 @@
 # Writing Assistant
 
-A PyQt6-based desktop application for improving academic writing using various AI models (OpenAI GPT, Anthropic Claude, Google Gemini). The app provides a split-pane interface where users input text on the left and receive AI-revised text on the right.
+A modern web application for improving academic writing using AI models from OpenAI, Anthropic, and Google. Get side-by-side comparisons of your text revised by three different AI models simultaneously.
+
+![Writing Assistant](writing-assistant-web/public/screenshot.png)
 
 ## Features
 
-- **Multi-Model Support**: Choose from various AI models including:
-  - Claude 4 Series (Opus, Sonnet)
-  - OpenAI GPT-4.1 Series
-  - Google Gemini 2.5 Series
-  - OpenAI reasoning models (o3-mini, o4-mini-high)
-- **Real-time Cost Estimation**: See estimated costs before processing
-- **Word Count Tracking**: Monitor document length as you type
-- **Footnote Removal**: Optional removal of footnotes before processing
-- **Temperature Control**: Adjust AI creativity level
-- **Automatic Output Saving**: Processed text is automatically saved with timestamps
-- **Responsive UI**: Async processing keeps the interface responsive
+- **Three AI Models**: Compare outputs from GPT-4, Claude, and Gemini models side-by-side
+- **Visual Diff**: Toggle to see additions and deletions highlighted in each output
+- **Collapsible Input**: Maximize screen space for outputs by collapsing the input panel
+- **Real-time Cost Tracking**: See estimated costs before processing and track session totals
+- **Resizable Panels**: Customize the layout to your preference
+- **Export Results**: Download all outputs in a single file
+- **Keyboard Shortcuts**: 
+  - `⌘/Ctrl + Enter` to process text
+  - `⌘/Ctrl + K` to toggle input panel
 
-## Installation
+## Quick Start
 
-### Prerequisites
+### Using the Run Script (Recommended)
 
-- Python 3.8 or higher
-- pip package manager
-
-### Setup
-
-1. Clone the repository:
+Simply run from the root directory:
 ```bash
-git clone <repository-url>
-cd "Writing Assistant"
+./run.sh
+```
+
+This script will:
+- Kill any existing instances
+- Install dependencies if needed
+- Start the server
+- Open your browser automatically
+- Handle cleanup on exit (Ctrl+C)
+
+### Manual Setup
+
+1. Navigate to the web app directory:
+```bash
+cd writing-assistant-web
 ```
 
 2. Install dependencies:
 ```bash
-pip install -r requirements.txt
+npm install
 ```
 
-3. Create a `.env` file in the root directory with your API keys:
-```env
+3. Copy the `.env` file to `.env.local` or create a new `.env.local` file with your API keys:
+```
 OPENAI_API_KEY=your_openai_key_here
 ANTHROPIC_API_KEY=your_anthropic_key_here
 GEMINI_API_KEY=your_gemini_key_here
 ```
 
+4. Run the development server:
+```bash
+npm run dev
+```
+
+5. Open [http://localhost:3500](http://localhost:3500) in your browser
+
 ## Usage
 
-Run the application:
+1. **Input Text**: Paste or type your text in the input panel (or drag and drop a .txt file)
+2. **Select Models**: Choose different AI models for each output panel
+3. **Adjust Settings**: 
+   - Temperature slider for creativity level (0-1)
+   - Toggle "Remove Footnotes" if needed
+4. **Process**: Click "Improve Writing" or press `⌘/Ctrl + Enter`
+5. **Compare Results**: 
+   - Toggle diff view to see changes highlighted
+   - Green = additions, Red with strikethrough = deletions
+6. **Export**: Copy individual outputs or export all results
+
+## Available Models
+
+### OpenAI
+- GPT-4 Turbo
+- GPT-4
+- GPT-3.5 Turbo
+- o1-preview
+- o1-mini
+
+### Anthropic
+- Claude 3 Opus
+- Claude 3 Sonnet
+- Claude 3 Haiku
+
+### Google
+- Gemini 1.5 Pro
+- Gemini 1.5 Flash
+- Gemini 1.0 Pro
+
+## Tech Stack
+
+- **Next.js 14** - React framework with App Router
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI components
+- **Zustand** - State management
+- **react-resizable-panels** - Resizable layout
+
+## Building for Production
+
 ```bash
-python main.py
+cd writing-assistant-web
+npm run build
+npm start
 ```
-
-### Interface Guide
-
-1. **Input Panel** (Left): Enter or paste your text here
-2. **Output Panel** (Right): AI-improved text appears here
-3. **Control Panel** (Bottom):
-   - **Model Selection**: Choose your preferred AI model
-   - **Temperature Slider**: Adjust creativity (0-100%)
-   - **Remove Footnotes**: Toggle footnote removal
-   - **Improve Writing**: Process your text
-   - **Clear**: Reset both panels
-
-## Project Structure
-
-```
-Writing Assistant/
-├── main.py                 # Application entry point
-├── requirements.txt        # Python dependencies
-├── README.md              # This file
-├── CLAUDE.md              # Claude Code instructions
-├── icon.icns              # Application icon
-├── .env                   # API keys (create this)
-└── src/                   # Source code
-    ├── api/               # API integration
-    │   ├── api_calls.py   # AI provider interfaces
-    │   └── api_clients.py # API client management
-    ├── config/            # Configuration
-    │   ├── config.py      # Model settings & prompts
-    │   └── constants.py   # Application constants
-    ├── core/              # Business logic
-    │   └── logic.py       # Main application logic
-    ├── ui/                # User interface
-    │   └── main_window.py # PyQt6 UI components
-    └── utils/             # Utilities
-        ├── cost_tracker.py    # Usage cost tracking
-        ├── formatters.py      # Text formatting
-        ├── token_cost_utils.py # Token estimation
-        └── validators.py      # Input validation
-```
-
-## Architecture
-
-### Signal/Slot Pattern
-The application uses PyQt6's signal/slot mechanism for clean separation between UI and business logic:
-- `LogicHandler` emits signals for status updates, progress, and results
-- `MainWindow` connects these signals to UI update methods
-
-### Async Processing
-- API calls are handled asynchronously using `asyncio` and `qasync`
-- Keeps the UI responsive during AI processing
-
-### Cost Calculation
-- Real-time token estimation based on input text and selected model
-- Accurate cost tracking for each API call
-- Cumulative cost tracking across sessions
 
 ## Configuration
 
-### Models
-Available models and their settings are defined in `src/config/config.py`:
-- Context window sizes
-- Output token limits
-- Cost per million tokens
+### Model Configuration
 
-### System Prompt
-The AI behavior is controlled by the system prompt in `config.py`. It emphasizes:
-- Clarity and precision
-- Scholarly tone preservation
-- Logical flow enhancement
-- Meaning preservation
+Model names, pricing, and context windows are configured in `models.yaml` in the root directory. Edit this file to:
+- Add new models
+- Update pricing
+- Change display names
+- Set context windows
+- Choose default models
 
-## API Requirements
-
-### OpenAI
-- Supports GPT-4.1 series and reasoning models
-- Requires valid OpenAI API key
-
-### Anthropic
-- Supports Claude 4 and Claude 3.7 series
-- Requires valid Anthropic API key
-
-### Google Gemini
-- Supports Gemini 2.5 Pro and Flash
-- Requires valid Google AI Studio API key
-
-## Output Files
-
-Processed text is automatically saved to timestamped files:
-- Format: `output-YYYYMMDDHHMMSS.txt`
-- Location: Application directory
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Module Import Errors**
-   - Ensure all dependencies are installed: `pip install -r requirements.txt`
-   - Check Python version (3.8+ required)
-
-2. **API Key Errors**
-   - Verify `.env` file exists and contains valid keys
-   - Check API key format and permissions
-
-3. **UI Not Responding**
-   - Large texts may take time to process
-   - Check console for error messages
-
-### Debug Mode
-
-Run with Python's verbose flag for detailed logging:
-```bash
-python -v main.py
-```
+After editing `models.yaml`, the configuration will be automatically regenerated when you run the app.
 
 ## Development
 
-### Adding New AI Models
-
-1. Add model configuration to `src/config/config.py`:
-   - Add to `MODEL_CHOICES`
-   - Define in `MAX_OUTPUT_TOKENS`
-   - Set costs in `COST_PER_1M_TOKENS`
-
-2. Update model detection in `src/utils/validators.py`
-
-3. Add API integration in `src/api/api_calls.py`
-
-### Code Style
-
-- Type hints are used throughout
-- Follow PEP 8 conventions
-- Imports organized by: standard library → third-party → local
+The app runs on port 3500 by default. To change this, modify the port in `package.json`.
 
 ## License
 
-[Your License Here]
-
-## Contributing
-
-[Your Contributing Guidelines Here]
+MIT
