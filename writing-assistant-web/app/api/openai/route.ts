@@ -8,7 +8,7 @@ const openai = new OpenAI({
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, model, temperature } = await req.json()
+    const { text, model, temperature, systemPrompt } = await req.json()
 
     if (!text || !model) {
       return NextResponse.json(
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     const userMessage = USER_MESSAGE_TEMPLATE.replace('{text}', text)
+    const promptToUse = systemPrompt || SYSTEM_MESSAGE
 
     let response
     let inputTokens = 0
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
       response = await openai.chat.completions.create({
         model: apiModel,
         messages: [
-          { role: 'user', content: `${SYSTEM_MESSAGE}\n\n${userMessage}` }
+          { role: 'user', content: `${promptToUse}\n\n${userMessage}` }
         ],
         max_tokens: modelConfig.maxTokens
       })
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       response = await openai.chat.completions.create({
         model: apiModel,
         messages: [
-          { role: 'system', content: SYSTEM_MESSAGE },
+          { role: 'system', content: promptToUse },
           { role: 'user', content: userMessage }
         ],
         temperature: temperature || 0.7,

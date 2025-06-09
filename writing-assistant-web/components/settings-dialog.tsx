@@ -1,8 +1,11 @@
 'use client'
 
-import { Settings, X } from 'lucide-react'
+import { Settings, X, FileText, Save } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { useStore } from '@/lib/store'
@@ -16,8 +19,18 @@ export function SettingsDialog() {
     setRemoveFootnotes,
     sessionCost,
     sessionRequests,
-    resetSession
+    resetSession,
+    systemPrompt,
+    sessionPrompt,
+    currentPrompt,
+    setSystemPrompt,
+    setSessionPrompt,
+    setCurrentPrompt
   } = useStore()
+  
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [editedPrompt, setEditedPrompt] = useState('')
+  const [promptScope, setPromptScope] = useState<'current' | 'session' | 'persistent'>('current')
 
   return (
     <Dialog>
@@ -26,7 +39,7 @@ export function SettingsDialog() {
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
@@ -97,6 +110,88 @@ export function SettingsDialog() {
             >
               Reset Session
             </Button>
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium">Writing Prompt</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowPrompt(!showPrompt)
+                  if (!showPrompt) {
+                    const activePrompt = currentPrompt || sessionPrompt || systemPrompt
+                    setEditedPrompt(activePrompt)
+                  }
+                }}
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                {showPrompt ? 'Hide' : 'View'} Prompt
+              </Button>
+            </div>
+            
+            {showPrompt && (
+              <div className="space-y-3">
+                <div className="text-xs text-muted-foreground">
+                  {currentPrompt ? 'Using current prompt override' : 
+                   sessionPrompt ? 'Using session prompt override' : 
+                   'Using default system prompt'}
+                </div>
+                
+                <Textarea
+                  value={editedPrompt}
+                  onChange={(e) => setEditedPrompt(e.target.value)}
+                  className="min-h-[200px] text-sm"
+                  placeholder="Enter your custom prompt..."
+                />
+                
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={promptScope}
+                    onValueChange={(value: 'current' | 'session' | 'persistent') => setPromptScope(value)}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current">Current prompt only</SelectItem>
+                      <SelectItem value="session">This session</SelectItem>
+                      <SelectItem value="persistent">Save permanently</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      switch (promptScope) {
+                        case 'current':
+                          setCurrentPrompt(editedPrompt)
+                          break
+                        case 'session':
+                          setSessionPrompt(editedPrompt)
+                          setCurrentPrompt(null)
+                          break
+                        case 'persistent':
+                          setSystemPrompt(editedPrompt)
+                          setSessionPrompt(null)
+                          setCurrentPrompt(null)
+                          break
+                      }
+                    }}
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Save Changes
+                  </Button>
+                </div>
+                
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p><strong>Current prompt only:</strong> Applies to the next submission only</p>
+                  <p><strong>This session:</strong> Applies until you close the app</p>
+                  <p><strong>Save permanently:</strong> Overwrites the default prompt</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

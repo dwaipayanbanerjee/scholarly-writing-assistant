@@ -127,7 +127,7 @@ export function OutputPanel({ id, originalText }: OutputPanelProps) {
                 </span>
               </div>
             )}
-            <div className="custom-scrollbar text-sm leading-relaxed">
+            <div className="custom-scrollbar text-base leading-relaxed">
               {showDiff ? (
                 <DiffViewer
                   original={originalText}

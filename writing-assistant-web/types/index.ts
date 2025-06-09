@@ -54,4 +54,7 @@ export interface AppState {
   outputs: OutputPanel[]
   sessionCost: number
   sessionRequests: number
+  systemPrompt: string
+  sessionPrompt: string | null
+  currentPrompt: string | null
 }

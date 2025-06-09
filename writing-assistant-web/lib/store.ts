@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { AppState, Model, OutputPanel } from '@/types'
-import { DEFAULT_MODELS } from './constants'
+import { DEFAULT_MODELS, SYSTEM_MESSAGE } from './constants'
 
 interface Store extends AppState {
   setInputText: (text: string) => void
@@ -13,6 +13,10 @@ interface Store extends AppState {
   resetOutputs: () => void
   incrementSession: (cost: number) => void
   resetSession: () => void
+  setSystemPrompt: (prompt: string) => void
+  setSessionPrompt: (prompt: string | null) => void
+  setCurrentPrompt: (prompt: string | null) => void
+  resetCurrentPrompt: () => void
 }
 
 export const useStore = create<Store>()(
@@ -22,6 +26,9 @@ export const useStore = create<Store>()(
       inputCollapsed: false,
       removeFootnotes: true,
       temperature: 0.7,
+      systemPrompt: SYSTEM_MESSAGE,
+      sessionPrompt: null,
+      currentPrompt: null,
       outputs: DEFAULT_MODELS.map((model, index) => ({
         id: `output-${index}`,
         model: model as Model,
@@ -74,7 +81,15 @@ export const useStore = create<Store>()(
       resetSession: () => set({
         sessionCost: 0,
         sessionRequests: 0
-      })
+      }),
+      
+      setSystemPrompt: (prompt) => set({ systemPrompt: prompt }),
+      
+      setSessionPrompt: (prompt) => set({ sessionPrompt: prompt }),
+      
+      setCurrentPrompt: (prompt) => set({ currentPrompt: prompt }),
+      
+      resetCurrentPrompt: () => set({ currentPrompt: null })
     }),
     {
       name: 'writing-assistant-storage',
@@ -82,7 +97,8 @@ export const useStore = create<Store>()(
         removeFootnotes: state.removeFootnotes,
         temperature: state.temperature,
         sessionCost: state.sessionCost,
-        sessionRequests: state.sessionRequests
+        sessionRequests: state.sessionRequests,
+        systemPrompt: state.systemPrompt
       })
     }
   )

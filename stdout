@@ -1,0 +1,58 @@
+ ✓ Compiled /api/openai in 371ms
+ POST /api/openai 200 in 1606ms
+ POST /api/claude 200 in 2144ms
+ POST /api/gemini 200 in 21474ms
+ POST /api/openai 200 in 1808ms
+ POST /api/claude 200 in 1866ms
+ POST /api/openai 200 in 5022ms
+ POST /api/openai 200 in 3791ms
+ POST /api/claude 200 in 4866ms
+ POST /api/openai 200 in 6699ms
+ GET / 200 in 86ms
+ ✓ Compiled in 113ms
+ ✓ Compiled in 57ms
+ ✓ Compiled in 40ms
+ ✓ Compiled in 85ms
+[1;33m
+🛑 Shutting down Writing Assistant...[0m
+[1;33m🧹 Cleaning up existing processes...[0m
+[?25h
+[0;32m✅ Cleanup complete[0m
+[0;32m👋 Writing Assistant stopped successfully[0m
+[1;33m
+🛑 Shutting down Writing Assistant...[0m
+[1;33m🧹 Cleaning up existing processes...[0m
+[0;32m✅ Cleanup complete[0m
+[0;32m👋 Writing Assistant stopped successfully[0m
+[0;32m🚀 Starting Writing Assistant[0m
+[1;33m🧹 Cleaning up existing processes...[0m
+[0;32m✅ Cleanup complete[0m
+[0;32m🌐 Starting server on http://localhost:3500[0m
+[1;33mPress Ctrl+C to stop the server
+[0m
+
+> writing-assistant-web@1.0.0 dev
+> npm run generate-models && next dev --turbopack -p 3500
+
+
+> writing-assistant-web@1.0.0 generate-models
+> node scripts/generate-models.js
+
+✅ Model configuration generated successfully!
+📝 Written to: /Users/imachomedwai/Dropbox (Personal)/Coding Workshop/Scholarly Apps/Writing Assistant/writing-assistant-web/lib/model-config.ts
+📊 Total models: 7
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:3500
+   - Network:      http://192.168.50.122:3500
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 692ms
+[0;32m✨ Server is running![0m
+ ○ Compiling / ...
+ ✓ Compiled / in 1045ms
+ GET / 200 in 1246ms
+ GET / 200 in 72ms
+ ✓ Compiled /api/openai in 351ms
+ POST /api/openai 200 in 5286ms
+ POST /api/claude 200 in 6964ms

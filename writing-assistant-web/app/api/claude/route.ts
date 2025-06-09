@@ -8,7 +8,7 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, model, temperature } = await req.json()
+    const { text, model, temperature, systemPrompt } = await req.json()
 
     if (!text || !model) {
       return NextResponse.json(
@@ -26,12 +26,13 @@ export async function POST(req: NextRequest) {
     }
 
     const userMessage = USER_MESSAGE_TEMPLATE.replace('{text}', text)
+    const promptToUse = systemPrompt || SYSTEM_MESSAGE
 
     const response = await anthropic.messages.create({
       model: modelConfig.apiModel,
       max_tokens: modelConfig.maxTokens || 4096,
       temperature: temperature || 0.7,
-      system: SYSTEM_MESSAGE,
+      system: promptToUse,
       messages: [
         { role: 'user', content: userMessage }
       ]

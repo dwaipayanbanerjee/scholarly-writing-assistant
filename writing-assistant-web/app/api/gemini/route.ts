@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, model, temperature } = await req.json()
+    const { text, model, temperature, systemPrompt } = await req.json()
 
     if (!text || !model) {
       return NextResponse.json(
@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
     }
 
     const userMessage = USER_MESSAGE_TEMPLATE.replace('{text}', text)
-    const fullPrompt = `${SYSTEM_MESSAGE}\n\n${userMessage}`
+    const promptToUse = systemPrompt || SYSTEM_MESSAGE
+    const fullPrompt = `${promptToUse}\n\n${userMessage}`
 
     const geminiModel = genAI.getGenerativeModel({ 
       model: modelConfig.apiModel,

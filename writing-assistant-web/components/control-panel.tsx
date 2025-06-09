@@ -25,7 +25,11 @@ export const ControlPanel = forwardRef<ControlPanelRef>((props, ref) => {
     incrementSession,
     sessionCost,
     sessionRequests,
-    resetSession
+    resetSession,
+    systemPrompt,
+    sessionPrompt,
+    currentPrompt,
+    resetCurrentPrompt
   } = useStore()
 
   const [isProcessing, setIsProcessing] = useState(false)
@@ -50,13 +54,17 @@ export const ControlPanel = forwardRef<ControlPanelRef>((props, ref) => {
       updateOutput(output.id, { loading: true, error: undefined })
 
       try {
+        // Determine which prompt to use
+        const activePrompt = currentPrompt || sessionPrompt || systemPrompt
+        
         const response = await fetch(`/api/${modelConfig.provider}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: processedText,
             model: output.model,
-            temperature
+            temperature,
+            systemPrompt: activePrompt
           })
         })
 
@@ -93,6 +101,12 @@ export const ControlPanel = forwardRef<ControlPanelRef>((props, ref) => {
     })
 
     await Promise.all(promises)
+    
+    // Reset current prompt after use
+    if (currentPrompt) {
+      resetCurrentPrompt()
+    }
+    
     setIsProcessing(false)
   }
 
